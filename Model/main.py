@@ -7,35 +7,37 @@ from sklearn.preprocessing import LabelEncoder
 from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, Conv1D, MaxPooling1D
+import tensorflow
+
 
 def load_data(data_path, metadata_path):
-   features = []
-   labels = []
+    features = []
+    labels = []
 
-   metadata = pd.read_csv(metadata_path)
+    metadata = pd.read_csv(metadata_path, sep=';')
 
-   for index, row in metadata.iterrows():
-     file_path = os.path.join(data_path, f"{row['FileName']}.wav")
+    for index, row in metadata.iterrows():
+        file_path = os.path.join(data_path, f"{row['FileName']}.wav")
 
-     # Load the audio file and resample it
-     target_sr = 22050
-     audio, sample_rate = librosa.load(file_path, sr=target_sr)
+        # Load the audio file and resample it
+        target_sr = 22050
+        audio, sample_rate = librosa.load(file_path, sr=target_sr)
 
-     # Extract MFCC features
-     mfccs = librosa.feature.mfcc(y=audio, sr=target_sr, n_mfcc=40)
-     mfccs_scaled = np.mean(mfccs.T, axis=0)
+        # Extract MFCC features
+        mfccs = librosa.feature.mfcc(y=audio, sr=target_sr, n_mfcc=40)
+        mfccs_scaled = np.mean(mfccs.T, axis=0)
+
+        # Append features and labels
+        features.append(mfccs_scaled)
+        labels.append(row['Label'])
+
+    return np.array(features), np.array(labels)
 
 
-     # Append features and labels
-     features.append(mfccs_scaled)
-     labels.append(row['Label'])
-
-     return np.array(features), np.array(labels)
-
-data_path = "/SoundData/PreparedData/"
-metadata_path = "/SoundData/Metadata.csv"
+data_path = "./SoundData/PreparedData/"
+metadata_path = "./SoundData/Metadata.csv"
 features, labels = load_data(data_path, metadata_path)
-
+print("Test data: " + str(len(labels)))
 
 # Encode labels
 le = LabelEncoder()
@@ -43,7 +45,8 @@ labels_encoded = le.fit_transform(labels)
 labels_onehot = to_categorical(labels_encoded)
 
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(features, labels_onehot, test_size=0.2, random_state=42, stratify=labels_onehot)
+X_train, X_test, y_train, y_test = train_test_split(features, labels_onehot, test_size=0.2, random_state=42,
+                                                    stratify=labels_onehot)
 
 input_shape = (X_train.shape[1], 1)
 model = Sequential()
@@ -64,44 +67,30 @@ X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
 
 model.fit(X_train, y_train, batch_size=32, epochs=100, validation_data=(X_test, y_test), verbose=1)
 
+
 def predict_audio_class(file_path, model, le):
     # Load the audio file and resample it
     target_sr = 22050
     audio, sample_rate = librosa.load(file_path, sr=target_sr)
 
-
     # Extract MFCC features
     mfccs = librosa.feature.mfcc(y=audio, sr=target_sr, n_mfcc=40)
     mfccs_scaled = np.mean(mfccs.T, axis=0)
 
-
     # Reshape the features to fit the input shape of the model
     features = mfccs_scaled.reshape(1, mfccs_scaled.shape[0], 1)
-
 
     # Predict the class
     predicted_vector = model.predict(features)
     predicted_class_index = np.argmax(predicted_vector, axis=-1)
 
-
     # Decode the class index to its corresponding label
     predicted_class = le.inverse_transform(predicted_class_index)
-
 
     return predicted_class[0]
 
 
-test_file_path1 = "/kaggle/input/urbansound8k/fold1/101415-3-0-2.wav"
+test_file_path1 = "./SoundData/PreparedData/NHU05040109_5.wav"
 predicted_class1 = predict_audio_class(test_file_path1, model, le)
-print("Correct output is: Dog bark")
+print("Correct output is: Dzik (1)")
 print("Predicted class:", predicted_class1)
-
-
-
-
-
-
-
-
-
-
