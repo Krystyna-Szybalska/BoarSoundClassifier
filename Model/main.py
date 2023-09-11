@@ -37,7 +37,7 @@ def load_data(data_path, metadata_path):
 data_path = "./SoundData/PreparedData/"
 metadata_path = "./SoundData/Metadata.csv"
 features, labels = load_data(data_path, metadata_path)
-print("Test data: " + str(len(labels)))
+print("Test data size: " + str(len(labels)))
 
 # Encode labels
 le = LabelEncoder()
@@ -83,13 +83,13 @@ def predict_audio_class(file_path, model, le):
     # Predict the class
     predicted_vector = model.predict(features)
     predicted_class_index = np.argmax(predicted_vector, axis=-1)
-
+    print(predicted_vector)
     # Decode the class index to its corresponding label
     predicted_class = le.inverse_transform(predicted_class_index)
 
     return predicted_class[0]
 
-test_file_path = "./SoundData/PreparedData/NHU05040109_5.wav"
+test_file_path = "./SoundData/76796__robinhood76__01161-boar-oink-3.wav"
 predicted_class1 = predict_audio_class(test_file_path, model, le)
 print("Correct output is: Dzik (1)")
 print("Predicted class:", predicted_class1)
