@@ -89,8 +89,7 @@ def predict_audio_class(file_path, model, le):
 
     return predicted_class[0]
 
-
-test_file_path1 = "./SoundData/PreparedData/NHU05040109_5.wav"
-predicted_class1 = predict_audio_class(test_file_path1, model, le)
+test_file_path = "./SoundData/PreparedData/NHU05040109_5.wav"
+predicted_class1 = predict_audio_class(test_file_path, model, le)
 print("Correct output is: Dzik (1)")
 print("Predicted class:", predicted_class1)
