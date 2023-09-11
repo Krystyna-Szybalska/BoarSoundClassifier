@@ -12,18 +12,14 @@ def load_data(data_path, metadata_path):
    features = []
    labels = []
 
-
    metadata = pd.read_csv(metadata_path)
 
-
    for index, row in metadata.iterrows():
-     file_path = os.path.join(data_path, f"fold{row['fold']}", f"{row['slice_file_name']}")
-
+     file_path = os.path.join(data_path, f"{row['FileName']}.wav")
 
      # Load the audio file and resample it
      target_sr = 22050
      audio, sample_rate = librosa.load(file_path, sr=target_sr)
-
 
      # Extract MFCC features
      mfccs = librosa.feature.mfcc(y=audio, sr=target_sr, n_mfcc=40)
@@ -32,12 +28,12 @@ def load_data(data_path, metadata_path):
 
      # Append features and labels
      features.append(mfccs_scaled)
-     labels.append(row['class'])
+     labels.append(row['Label'])
 
      return np.array(features), np.array(labels)
 
-data_path = "/kaggle/input/urbansound8k"
-metadata_path = "/kaggle/input/urbansound8k/UrbanSound8K.csv"
+data_path = "/SoundData/PreparedData/"
+metadata_path = "/SoundData/Metadata.csv"
 features, labels = load_data(data_path, metadata_path)
 
 
