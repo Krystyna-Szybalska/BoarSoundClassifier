@@ -34,7 +34,7 @@ def load_data(data_path, metadata_path):
     return np.array(features), np.array(labels)
 
 data_path = "./SoundData/PreparedData/"
-metadata_path = "./SoundData/Metadata.csv"
+metadata_path = "./SoundData/Metadata1.csv"
 features, labels = load_data(data_path, metadata_path)
 # print("Test data size: " + str(len(labels)))
 # print(features)
@@ -90,6 +90,7 @@ def predict_audio_class(file_path, model, le):
     predicted_class = le.inverse_transform(predicted_class_index)
 
     return predicted_class[0]
+
 
 test_file_path = "./SoundData/76796__robinhood76__01161-boar-oink-3.wav"
 predicted_class1 = predict_audio_class(test_file_path, model, le)

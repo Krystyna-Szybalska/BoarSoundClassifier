@@ -5,7 +5,7 @@ import shutil
 # Define the paths
 csv_file_path = 'Metadata.csv'  # Update with the actual path to your CSV file
 output_folder = 'Quality_0_Files'  # The folder to move the files with Quality = 0
-source_directory = 'C:\\Users\Krysia\Desktop\BoarSoundClassifier\Model\SoundData\PreparedData\\'
+source_directory = os.getcwd() + '\\PreparedData'
 
 # Create the output folder if it doesn't exist
 os.makedirs(output_folder, exist_ok=True)
@@ -19,7 +19,7 @@ with open(csv_file_path, mode='r', newline='', encoding='utf-8') as csv_file:
         quality = int(row['Quality'])
 
         if quality == 0:
-            source_path = os.path.join(source_directory, file_name, '.wav')
+            source_path = os.path.join(source_directory, file_name)
             destination_path = os.path.join(output_folder, file_name)
 
             # Move the file to the new folder
