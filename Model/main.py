@@ -7,7 +7,6 @@ from sklearn.preprocessing import LabelEncoder
 from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, Conv1D, MaxPooling1D
-import tensorflow
 
 
 def load_data(data_path, metadata_path):
@@ -26,33 +25,36 @@ def load_data(data_path, metadata_path):
         # Extract MFCC features
         mfccs = librosa.feature.mfcc(y=audio, sr=target_sr, n_mfcc=40)
         mfccs_scaled = np.mean(mfccs.T, axis=0)
-
+        # print(mfccs.shape)
+        # print(mfccs_scaled)
         # Append features and labels
         features.append(mfccs_scaled)
         labels.append(row['Label'])
 
     return np.array(features), np.array(labels)
 
-
 data_path = "./SoundData/PreparedData/"
 metadata_path = "./SoundData/Metadata.csv"
 features, labels = load_data(data_path, metadata_path)
-print("Test data size: " + str(len(labels)))
+# print("Test data size: " + str(len(labels)))
+# print(features)
 
 # Encode labels
 le = LabelEncoder()
 labels_encoded = le.fit_transform(labels)
-labels_onehot = to_categorical(labels_encoded)
+labels_onehot = to_categorical(labels)
 
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(features, labels_onehot, test_size=0.2, random_state=42,
                                                     stratify=labels_onehot)
+# random state set to specific number ensures that the data will always be split the same way
 
+# thats CNN designed for a multiclass problem - better change that
 input_shape = (X_train.shape[1], 1)
 model = Sequential()
 model.add(Conv1D(64, 3, padding='same', activation='relu', input_shape=input_shape))
 model.add(MaxPooling1D(pool_size=2))
-model.add(Dropout(0.25))
+model.add(Dropout(0.25))  # prevents overfitting by randomly setting some input values to 0
 model.add(Conv1D(128, 3, padding='same', activation='relu'))
 model.add(MaxPooling1D(pool_size=2))
 model.add(Dropout(0.25))
