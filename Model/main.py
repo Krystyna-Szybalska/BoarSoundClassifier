@@ -7,7 +7,11 @@ from sklearn.preprocessing import LabelEncoder
 from keras.utils import to_categorical
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, Conv1D, MaxPooling1D
-
+import tensorflow as tf
+import random
+np.random.seed(12)
+tf.random.set_seed(12)
+random.seed(12)
 
 def load_data(data_path, metadata_path):
     features = []
@@ -33,42 +37,22 @@ def load_data(data_path, metadata_path):
 
     return np.array(features), np.array(labels)
 
-data_path = "./SoundData/PreparedData/"
-metadata_path = "./SoundData/Metadata1.csv"
-features, labels = load_data(data_path, metadata_path)
-# print("Test data size: " + str(len(labels)))
-# print(features)
+def get_dataset_partitions(ds, ds_size, train_split=0.8, val_split=0.1, test_split=0.1, shuffle=True,
+                              shuffle_size=10000):
+    assert (train_split + test_split + val_split) == 1
 
-# Encode labels
-le = LabelEncoder()
-labels_encoded = le.fit_transform(labels)
-labels_onehot = to_categorical(labels)
+    if shuffle:
+        # Specify seed to always have the same split distribution between runs
+        ds = ds.shuffle(shuffle_size, seed=12)
 
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(features, labels_onehot, test_size=0.2, random_state=42,
-                                                    stratify=labels_onehot)
-# random state set to specific number ensures that the data will always be split the same way
+    train_size = int(train_split * ds_size)
+    val_size = int(val_split * ds_size)
 
-# thats CNN designed for a multiclass problem - better change that
-input_shape = (X_train.shape[1], 1)
-model = Sequential()
-model.add(Conv1D(64, 3, padding='same', activation='relu', input_shape=input_shape))
-model.add(MaxPooling1D(pool_size=2))
-model.add(Dropout(0.25))  # prevents overfitting by randomly setting some input values to 0
-model.add(Conv1D(128, 3, padding='same', activation='relu'))
-model.add(MaxPooling1D(pool_size=2))
-model.add(Dropout(0.25))
-model.add(Flatten())
-model.add(Dense(512, activation='relu'))
-model.add(Dropout(0.5))
-model.add(Dense(len(le.classes_), activation='softmax'))
+    train_ds = ds.take(train_size)
+    val_ds = ds.skip(train_size).take(val_size)
+    test_ds = ds.skip(train_size).skip(val_size)
 
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
-X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
-
-model.fit(X_train, y_train, batch_size=32, epochs=100, validation_data=(X_test, y_test), verbose=1)
-
+    return train_ds, val_ds, test_ds
 
 def predict_audio_class(file_path, model, le):
     # Load the audio file and resample it
@@ -85,14 +69,71 @@ def predict_audio_class(file_path, model, le):
     # Predict the class
     predicted_vector = model.predict(features)
     predicted_class_index = np.argmax(predicted_vector, axis=-1)
-    print(predicted_vector)
     # Decode the class index to its corresponding label
     predicted_class = le.inverse_transform(predicted_class_index)
 
     return predicted_class[0]
 
 
-test_file_path = "./SoundData/76796__robinhood76__01161-boar-oink-3.wav"
-predicted_class1 = predict_audio_class(test_file_path, model, le)
-print("Correct output is: Dzik (1)")
-print("Predicted class:", predicted_class1)
+data_path = "./SoundData/PreparedData/"
+metadata_path = "./SoundData/Metadata1.csv"
+features, labels = load_data(data_path, metadata_path)
+# print("Test data size: " + str(len(labels)))
+# print(features)
+
+# Encode labels
+le = LabelEncoder()
+labels_encoded = le.fit_transform(labels)
+labels_onehot = to_categorical(labels)
+
+train_dataset = tf.data.Dataset.from_tensor_slices((features, labels_onehot))
+
+train_ds, val_ds, test_ds = get_dataset_partitions(ds=train_dataset, ds_size=len(features))
+
+# that's CNN designed for a multiclass problem - better change that
+input_shape = (40, n_timesteps, 1)  # Adjust based on MFCC dimensions
+model = Sequential([
+    Conv2D(64, (3, 3), activation='relu', input_shape=input_shape),
+    MaxPooling2D(pool_size=(2, 2)),
+    Dropout(0.25),
+    Conv2D(128, (3, 3), activation='relu'),
+    MaxPooling2D(pool_size=(2, 2)),
+    Dropout(0.25),
+    Flatten(),
+    Dense(512, activation='relu'),
+    Dropout(0.5),
+    Dense(len(le.classes_), activation='softmax')
+])
+
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+callbacks = [
+    tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True),
+    tf.keras.callbacks.ModelCheckpoint("best_model.h5", save_best_only=True)
+]
+model.fit(train_ds, validation_data=val_ds, epochs=100, callbacks=callbacks)
+
+# test it
+correct_predictions = 0
+total_predictions = 0
+metadata = pd.read_csv("C:\\Users\Krysia\Desktop\BoarSoundClassifier\Model\SoundData\Metadata0.csv", sep=';')
+for index, row in metadata.iterrows():
+    file_name = row['FileName'] + ".wav"  # Add the file extension
+    # Construct the full path to the audio file
+    audio_file_path = os.path.join("C:\\Users\Krysia\Desktop\BoarSoundClassifier\Model\SoundData\Quality_0_Files\\",
+                                   file_name)
+    # Call your predict_audio_class function to get the predicted class
+    predicted_class = predict_audio_class(audio_file_path, model, le)
+    # Compare the predicted class with the correct label
+     correct_label = row['Label']
+
+    if predicted_class == correct_label:
+        correct_predictions += 1
+    else:
+        print(f"File: {file_name}, Predicted: {predicted_class}, Actual: {correct_label}")
+
+    total_predictions += 1
+
+print(f"Total: {correct_predictions}/{total_predictions}")
+
+loss, accuracy = model.evaluate(test_ds)
+print(f"Test Accuracy: {accuracy * 100:.2f}%")
