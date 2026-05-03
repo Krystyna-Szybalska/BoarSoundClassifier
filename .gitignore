@@ -161,10 +161,18 @@ cython_debug/
 
 
 # Files
-.xlsx
-.xlsm
-.csv
-.wav
-.pkl
-.txt
-.zip
+**.xlsx
+**.xlsm
+**.csv
+**.pkl
+**.txt
+**.zip
+**.pth
+
+#Sound files
+**.wav
+**.mp3
+**.mp4
+**.m4a
+**.opus
+**.ogg
