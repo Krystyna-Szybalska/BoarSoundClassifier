@@ -176,3 +176,9 @@ cython_debug/
 **.m4a
 **.opus
 **.ogg
+
+# Negations: project-tracked files that would otherwise be swallowed by patterns above
+!requirements.txt
+!requirements-dev.txt
+!tests/fixtures/
+!tests/fixtures/**
