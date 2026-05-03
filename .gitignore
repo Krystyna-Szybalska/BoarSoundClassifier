@@ -167,3 +167,4 @@ cython_debug/
 .wav
 .pkl
 .txt
+.zip
